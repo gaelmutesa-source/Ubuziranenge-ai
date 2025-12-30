@@ -23,7 +23,7 @@ all_instruments.sort()
 
 # --- 2. UI HEADER ---
 st.image("Rsb-logo.png", width=150)
-st.title("⚖️ Ubuziranenge AI")
+st.title("⚖️ Ubuziranenge Assistant")
 st.write("### RSB Metrology Quotation & Service Guide")
 
 # --- 3. INPUTS ---

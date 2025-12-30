@@ -11,8 +11,9 @@ lab_mapping = {
     "Mass & Balance Lab": ["Analytical Balance", "Industrial Scale", "Standard Weights"],
     "Temperature & Humidity Lab": ["Thermometer", "Oven/Fridge", "Autoclave/Incubator"],
     "Volume & Flow Lab": ["Micropipette", "Laboratory Glassware", "Prover Tank"],
-    "Pressure & Force Lab": ["Pressure Gauge", "Compression Machine"],
-    "Dimension Lab": ["Vernier Caliper", "Micrometer", "Ruler/Tape Measure"]
+    "Pressure": ["Pressure Gauge"],
+    "Force & Torque Lab":["cbr","Torque wrench","compression and tension machine","marshall"],
+    "Dimension Lab": ["dial gauge","Vernier Caliper", "Micrometer", "Ruler/Tape Measure"]
 }
 
 all_instruments = []

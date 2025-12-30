@@ -1,24 +1,38 @@
 import streamlit as st
 from datetime import datetime, timedelta
 from fpdf import FPDF
+import os
 
 # Page Configuration
-st.set_page_config(page_title="Ubuziranenge Assistant", page_icon="⚖️")
-# ---1.  UI HEADER & LOGO ---
-# This looks for the logo.png you uploaded to GitHub
-    st.image("logo.png", width=150)
-    st.title("⚖️ Ubuziranenge Assistant")
-st.write("### RSB Metrology Quotation & Service Guide")
+st.set_page_config(page_title="Ubuziranenge AI", page_icon="⚖️", layout="centered")
 
-# --- 2. DATA & LOGIC ---
+# --- UI HEADER & LOGO ---
+# This looks for the logo.png you uploaded to GitHub
+if os.path.exists("logo.png"):
+    st.image("logo.png", width=150)
+    
+    # Optional: Allow user to download the logo directly
+    with open("logo.png", "rb") as file:
+        st.sidebar.download_button(
+            label="📥 Download Official RSB Logo",
+            data=file,
+            file_name="RSB_Logo.png",
+            mime="image/png"
+        )
+else:
+    st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>Ubuziranenge AI</h1>", unsafe_allow_html=True)
+
+st.markdown("<p style='text-align: center;'><b>Rwanda Standards Board Metrology Assistant</b></p>", unsafe_allow_html=True)
+st.divider()
+
+# --- 1. THE KNOWLEDGE BASE ---
 lab_mapping = {
     "Legal Metrology Unit": ["Market Scale", "Fuel Pump", "Water Meter", "Electricity Meter", "Taxi Meter", "Weighbridge"],
     "Mass & Balance Lab": ["Analytical Balance", "Industrial Scale", "Standard Weights"],
     "Temperature & Humidity Lab": ["Thermometer", "Oven/Fridge", "Autoclave/Incubator"],
     "Volume & Flow Lab": ["Micropipette", "Laboratory Glassware", "Prover Tank"],
-    "Pressure": ["Pressure Gauge"],
-    "Force & Torque Lab":["cbr","Torque wrench","compression and tension machine","marshall"],
-    "Dimension Lab": ["dial gauge","Vernier Caliper", "Micrometer", "Ruler/Tape Measure"]
+    "Pressure & Force Lab": ["Pressure Gauge", "Compression Machine"],
+    "Dimension Lab": ["Vernier Caliper", "Micrometer", "Ruler/Tape Measure"]
 }
 
 all_instruments = []
@@ -26,34 +40,38 @@ for items in lab_mapping.values():
     all_instruments.extend(items)
 all_instruments.sort()
 
+# --- 2. INPUT SECTION ---
+st.subheader("📝 Request Details")
+col1, col2 = st.columns(2)
 
+with col1:
+    selected_item = st.selectbox("Select your instrument:", all_instruments)
+    quantity = st.number_input("Number of instruments:", min_value=1, value=1, step=1)
 
-# --- 3. INPUTS ---
-col_in1, col_in2 = st.columns(2)
+with col2:
+    usage = st.radio(
+        "Purpose of use:",
+        ["Trade/Commercial (Market, Billing, etc.)", "Industrial/Scientific (Lab, Medical, Factory)"]
+    )
 
-with col_in1:
-    selected_item = st.selectbox("Select Instrument:", all_instruments)
-    is_trade = st.radio("Purpose of use:", ["Trade (Buying/Selling)", "Industrial/Scientific"])
+# --- 3. CALCULATION LOGIC ---
+is_trade = "Trade" in usage
 
-with col_in2:
-    quantity = st.number_input("Number of Instruments:", min_value=1, value=1, step=1)
-
-# --- 4. CALCULATION ---
-if is_trade == "Trade (Buying/Selling)":
+if is_trade:
     service_type = "Verification"
+    lab_assigned = "Legal Metrology Unit"
     unit_price = 500
     total_cost = quantity * unit_price
-    lab_assigned = "Legal Metrology Unit"
 else:
     service_type = "Calibration"
     unit_price = 10000
-    lab_assigned = "General Metrology" # Default
+    lab_assigned = "General Metrology Lab"
     for lab, items in lab_mapping.items():
         if selected_item in items:
             lab_assigned = lab
             break
     
-    # Pricing logic: 10k each, max 100k for 10+ items
+    # 100,000 Rwf Cap for Industrial
     if quantity >= 10:
         total_cost = 100000
     else:
@@ -61,34 +79,40 @@ else:
 
 collection_date = (datetime.now() + timedelta(days=14)).strftime('%d %B, %Y')
 
-# --- 5. RESULTS DISPLAY ---
-st.divider()
-st.subheader("Service Summary")
+# --- 4. RESULTS DISPLAY ---
+st.info(f"### Service Summary")
+res_col1, res_col2 = st.columns(2)
 
-res1, res2, res3 = st.columns(3)
-res1.metric("Designated Lab", lab_assigned)
-res2.metric("Total Cost", f"{total_cost:,} Rwf")
-res3.metric("Collection Date", collection_date)
+with res_col1:
+    st.write(f"**Laboratory:** {lab_assigned}")
+    st.write(f"**Service:** {service_type}")
+    st.write(f"**Quantity:** {quantity}")
 
-# --- 6. PDF GENERATION ---
+with res_col2:
+    st.write(f"**Total Cost:** {total_cost:,} Rwf")
+    st.write(f"**Collection Date:** {collection_date}")
+
+# --- 5. PDF GENERATION ---
 def create_pdf():
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, "RSB Ubuziranenge AI Service Slip", ln=True, align='C')
+    pdf.cell(200, 10, "RSB Metrology Service Slip", ln=True, align='C')
     pdf.set_font("Arial", size=12)
     pdf.ln(10)
-    pdf.cell(200, 10, f"Date generated: {datetime.now().strftime('%Y-%m-%d')}", ln=True)
     pdf.cell(200, 10, f"Instrument: {selected_item}", ln=True)
     pdf.cell(200, 10, f"Service Type: {service_type}", ln=True)
     pdf.cell(200, 10, f"Quantity: {quantity}", ln=True)
     pdf.cell(200, 10, f"Designated Lab: {lab_assigned}", ln=True)
     pdf.cell(200, 10, f"Total Estimated Cost: {total_cost:,} Rwf", ln=True)
-    pdf.cell(200, 10, f"Collection Date: {collection_date}", ln=True)
-    pdf.ln(10)
-    pdf.set_font("Arial", 'I', 10)
-    pdf.multi_cell(0, 5, "Note: This is an automated estimate. Final billing will be done at the RSB reception desk.")
+    pdf.cell(200, 10, f"Scheduled Collection: {collection_date}", ln=True)
     return pdf.output(dest="S").encode("latin-1")
 
+st.divider()
 pdf_data = create_pdf()
-st.download_button(label="📥 Download Service Slip (PDF)", data=pdf_data, file_name="RSB_Service_Slip.pdf", mime="application/pdf")
+st.download_button(
+    label="📥 Download Service Slip (PDF)",
+    data=pdf_data,
+    file_name=f"RSB_Slip_{selected_item.replace(' ', '_')}.pdf",
+    mime="application/pdf"
+)

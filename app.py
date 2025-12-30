@@ -17,8 +17,9 @@ instrument_data = {
     "Mass & Balance": ["Analytical Balance", "Industrial Scale", "Standard Weights", "Moisture Analyzer"],
     "Temperature & Humidity": ["Digital Thermometer", "Oven", "Refrigerator", "Autoclave", "Incubator", "Data Logger"],
     "Volume & Flow": ["Micropipette", "Laboratory Glassware", "Prover Tank", "Flow Meter"],
-    "Pressure & Force": ["Pressure Gauge", "Compression Machine", "Torque Wrench", "Load Cell"],
-    "Dimension": ["Vernier Caliper", "Micrometer", "Steel Ruler", "Tape Measure"]
+    "Pressure": ["Pressure Gauge"],
+    "Force":["Compression Machine", "Torque Wrench", "Load Cell","cbr"],
+    "Dimension": ["dial gauge","Vernier Caliper", "Micrometer", "Steel Ruler", "Tape Measure"]
 }
 
 # Create a flat list for the dropdown

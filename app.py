@@ -1,4 +1,25 @@
-import streamlit as st
+# --- Improved Designation Logic ---
+        if "Trade" in use_case:
+            lab_assigned = "Legal Metrology Unit (Verification Service)"
+        else:
+            # Default if no keyword is found
+            lab_assigned = "Industrial Metrology (General Lab)" 
+            
+            # Dictionary of labs and keywords
+            industrial_labs = {
+                "Mass & Balance": ["weight", "balance", "scale", "mass"],
+                "Temperature & Humidity": ["thermometer", "oven", "fridge", "incubator", "autoclave", "cold room"],
+                "Volume & Flow": ["pipette", "burette", "flask", "tank", "meter", "glassware"],
+                "Pressure": ["pressure gauge"],
+                "Force":["cbr","torque wrench","compression and tension machine","marshall"],
+                "Dimension": ["dial gauge","caliper", "micrometer", "ruler", "tape", "height"]
+            }
+
+            # Search for the lab name based on keywords
+            for lab_name, keywords in industrial_labs.items():
+                if any(word in instrument_lower for word in keywords):
+                    lab_assigned = f"Industrial Metrology - {lab_name}"
+                    break # Stop looking once we find a matchimport streamlit as st
 from datetime import datetime, timedelta
 
 # Page Configuration

@@ -1,4 +1,84 @@
-# --- Improved Designation Logic ---
+import streamlit as st
+from datetime import datetime, timedelta
+
+# Page Configuration
+st.set_page_config(page_title="Ubuziranenge AI", page_icon="⚖️")
+
+st.title("⚖️ Ubuziranenge AI")
+st.subheader("RSB Metrology Service Assistant")
+
+# --- 1. Define the Knowledge Base (Dropdown Options) ---
+# Each key is the Laboratory, and the list contains common instruments for that lab.
+instrument_data = {
+    "Legal Metrology (Trade)": [
+        "Market Scale", "Fuel Pump/Dispenser", "Water Meter", 
+        "Electricity Meter", "Taxi Meter", "Weighbridge", "Pre-packaged Goods"
+    ],
+    "Mass & Balance": ["Analytical Balance", "Industrial Scale", "Standard Weights", "Moisture Analyzer"],
+    "Temperature & Humidity": ["Digital Thermometer", "Oven", "Refrigerator", "Autoclave", "Incubator", "Data Logger"],
+    "Volume & Flow": ["Micropipette", "Laboratory Glassware", "Prover Tank", "Flow Meter"],
+    "Pressure & Force": ["Pressure Gauge", "Compression Machine", "Torque Wrench", "Load Cell"],
+    "Dimension": ["Vernier Caliper", "Micrometer", "Steel Ruler", "Tape Measure"]
+}
+
+# Create a flat list for the dropdown
+all_instruments = []
+for lab_category in instrument_data:
+    all_instruments.extend(instrument_data[lab_category])
+all_instruments.sort()
+all_instruments.append("Other (Not in list)")
+
+# --- 2. User Inputs ---
+with st.container():
+    st.write("### Step 1: Select your Equipment")
+    
+    selected_instrument = st.selectbox(
+        "Which instrument are you bringing to RSB?",
+        options=all_instruments
+    )
+
+    # Specific use case question to satisfy the "Trade" rule
+    use_case = st.radio(
+        "What is the intended use?",
+        ["Commercial Trade (Buying/Selling/Billing)", "Internal Quality Control / Scientific Research"]
+    )
+
+# --- 3. Logic Processing ---
+if st.button("Generate Service Slip"):
+    
+    # Rule 1: Trade always goes to Legal Metrology
+    if "Commercial Trade" in use_case:
+        lab_assigned = "Legal Metrology Unit"
+        service_type = "Verification"
+    else:
+        # Rule 2: Find the specific Industrial Lab
+        lab_assigned = "General Metrology Lab" # Default
+        service_type = "Calibration"
+        
+        for lab, instruments in instrument_data.items():
+            if selected_instrument in instruments:
+                lab_assigned = lab
+                break
+    
+    # Rule 3: Date Calculation
+    received_date = datetime.now()
+    collection_date = received_date + timedelta(days=14)
+
+    # --- 4. Display Results ---
+    st.divider()
+    st.success("### Service Designation")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write(f"**Instrument:** {selected_instrument}")
+        st.write(f"**Designated Lab:** {lab_assigned}")
+        st.write(f"**Service Type:** {service_type}")
+    
+    with col2:
+        st.metric("Collection Date", collection_date.strftime("%d %B, %Y"))
+        st.write(f"*Received: {received_date.strftime('%d %B, %Y')}*")
+
+    st.warning("⚠️ **Note:** Please ensure the instrument is clean and accompanied by its power cables or accessories.")# --- Improved Designation Logic ---
         if "Trade" in use_case:
             lab_assigned = "Legal Metrology Unit (Verification Service)"
         else:

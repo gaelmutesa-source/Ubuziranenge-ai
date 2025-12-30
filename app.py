@@ -4,8 +4,14 @@ from fpdf import FPDF
 
 # Page Configuration
 st.set_page_config(page_title="Ubuziranenge Assistant", page_icon="⚖️")
+# ---1.  UI HEADER & LOGO ---
+# This looks for the logo.png you uploaded to GitHub
+if os.path.exists("logo.png"):
+    st.image("logo.png", width=150)
+    st.title("⚖️ Ubuziranenge Assistant")
+st.write("### RSB Metrology Quotation & Service Guide")
 
-# --- 1. DATA & LOGIC ---
+# --- 2. DATA & LOGIC ---
 lab_mapping = {
     "Legal Metrology Unit": ["Market Scale", "Fuel Pump", "Water Meter", "Electricity Meter", "Taxi Meter", "Weighbridge"],
     "Mass & Balance Lab": ["Analytical Balance", "Industrial Scale", "Standard Weights"],
@@ -21,10 +27,7 @@ for items in lab_mapping.values():
     all_instruments.extend(items)
 all_instruments.sort()
 
-# --- 2. UI HEADER ---
-st.image("logo.png", width=150)
-st.title("⚖️ Ubuziranenge Assistant")
-st.write("### RSB Metrology Quotation & Service Guide")
+
 
 # --- 3. INPUTS ---
 col_in1, col_in2 = st.columns(2)

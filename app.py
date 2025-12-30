@@ -13,7 +13,8 @@ lab_mapping = {
     "Temperature & Humidity Lab": ["Thermometer", "Oven/Fridge", "Autoclave/Incubator"],
     "Volume & Flow Lab": ["Micropipette", "Laboratory Glassware", "Prover Tank"],
     "Pressure & Force Lab": ["Pressure Gauge", "Compression Machine"],
-    "Dimension Lab": ["Vernier Caliper", "Micrometer", "Ruler/Tape Measure"]
+    "Force & Torque Lab": ["cbr","torque wrench","comprension and tension machine","loadcell"],
+    "Dimension Lab": ["dial gauge","Vernier Caliper", "Micrometer", "Ruler/Tape Measure"]
 }
 
 # Create the dropdown list

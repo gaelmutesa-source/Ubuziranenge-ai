@@ -6,7 +6,6 @@ from fpdf import FPDF
 st.set_page_config(page_title="Ubuziranenge Assistant", page_icon="⚖️")
 # ---1.  UI HEADER & LOGO ---
 # This looks for the logo.png you uploaded to GitHub
-if os.path.exists("logo.png"):
     st.image("logo.png", width=150)
     st.title("⚖️ Ubuziranenge Assistant")
 st.write("### RSB Metrology Quotation & Service Guide")

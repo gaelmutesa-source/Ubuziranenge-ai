@@ -22,7 +22,7 @@ for items in lab_mapping.values():
 all_instruments.sort()
 
 # --- 2. UI HEADER ---
-st.image("https://www.rsb.gov.rw/typo3conf/ext/rsb_site/Resources/Public/Images/logo.png", width=120)
+st.image("Rsb-logo.png", width=150)
 st.title("⚖️ Ubuziranenge AI")
 st.write("### RSB Metrology Quotation & Service Guide")
 

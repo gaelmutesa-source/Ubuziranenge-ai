@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from fpdf import FPDF
 
 # Page Configuration
-st.set_page_config(page_title="Ubuziranenge AI", page_icon="⚖️")
+st.set_page_config(page_title="Ubuziranenge Assistant", page_icon="⚖️")
 
 # --- 1. DATA & LOGIC ---
 lab_mapping = {
@@ -22,7 +22,7 @@ for items in lab_mapping.values():
 all_instruments.sort()
 
 # --- 2. UI HEADER ---
-st.image("Rsb-logo.png", width=150)
+st.image("logo.png", width=150)
 st.title("⚖️ Ubuziranenge Assistant")
 st.write("### RSB Metrology Quotation & Service Guide")
 

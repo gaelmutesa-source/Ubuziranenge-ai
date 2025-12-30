@@ -42,8 +42,9 @@ if st.button("Get Designation & Collection Date"):
             "Mass & Balance": ["weight", "balance", "scale"],
             "Temperature & Humidity": ["thermometer", "oven", "fridge", "incubator", "autoclave"],
             "Volume & Flow": ["pipette", "burette", "flask", "tank", "meter"],
-            "Pressure & Force": ["gauge", "compression", "force", "cbr"],
-            "Dimension": ["caliper", "micrometer", "ruler", "tape"]
+            "Pressure": ["pressure gauge"],
+            "Force":["cbr","marshall","torque wrench","compression and tension machine"],
+            "Dimension": ["caliper", "micrometer", "ruler", "tape","dial gauge"]
         }
 
         # Determine Designation

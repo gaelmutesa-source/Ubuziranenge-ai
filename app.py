@@ -133,8 +133,7 @@ def send_email(pdf_content, recipient_email):
     except Exception as e:
         st.error(f"Email failed: {e}")
         return False
-
-    def create_pdf(sig_image_data):
+def create_pdf(sig_image_data):
     pdf = FPDF()
     pdf.add_page()
     

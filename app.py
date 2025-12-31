@@ -5,11 +5,12 @@ from streamlit_drawable_canvas import st_canvas
 from PIL import Image
 import numpy as np
 import os
+import io
 
-# --- PAGE CONFIG ---
+# --- 1. PAGE SETUP ---
 st.set_page_config(page_title="Ubuziranenge AI", layout="centered")
 
-# Forced Light Theme CSS
+# Force Light Mode CSS
 st.markdown("""
     <style>
     .stApp { background-color: white !important; }
@@ -17,75 +18,108 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- HEADER ---
+# --- 2. HEADER ---
 if os.path.exists("logo.png"):
     st.image("logo.png", width=150)
 st.title("Ubuziranenge AI")
 st.write("Metrology service application assistant")
+st.divider()
 
-# --- 1. CUSTOMER INFO ---
-company_name = st.text_input("Company Name")
-applicant_name = st.text_input("Applicant Name")
-# ... (keeping other fields simple for this debug version)
+# --- 3. INPUT FIELDS ---
+col1, col2 = st.columns(2)
+with col1:
+    company_name = st.text_input("Company Name")
+    applicant_name = st.text_input("Applicant Name")
+    tin_number = st.text_input("TIN Number")
+with col2:
+    selected_item = st.selectbox("Instrument:", ["Digital Scale", "Thermometer", "Water Meter", "Fuel Pump", "Pressure Gauge"])
+    usage = st.radio("Usage:", ["Trade/Commercial", "Industrial/Scientific"])
+    quantity = st.number_input("Units:", min_value=1, value=1)
 
-# --- 2. LOGIC ---
-selected_item = st.selectbox("Instrument:", ["Digital Scale", "Thermometer", "Water Meter"])
-usage = st.radio("Usage:", ["Trade", "Industrial"])
-quantity = st.number_input("Units:", min_value=1, value=1)
-
-is_trade = usage == "Trade"
+# --- 4. CALCULATION LOGIC ---
+is_trade = "Trade" in usage
 total_cost = (quantity * 500) if is_trade else (100000 if quantity >= 10 else quantity * 10000)
-lab_assigned = "Legal Metrology" if is_trade else "Industrial Lab"
+lab_assigned = "Legal Metrology" if is_trade else "Industrial Metrology Lab"
 col_date = (datetime.now() + timedelta(days=14)).strftime('%d %B, %Y')
 
-# --- 3. THE SIGNATURE PAD (FIXED) ---
+# --- 5. SIGNATURE PAD ---
 st.subheader("✍️ Applicant Signature")
 canvas_result = st_canvas(
     fill_color="rgba(255, 255, 255, 0)",
     stroke_width=3,
     stroke_color="#000000",
     background_color="#F0F2F6",
-    update_streamlit=True, # Forces data to be sent
+    update_streamlit=True,
     height=150,
-    drawing_mode="freedraw",
     key="canvas",
 )
 
-# --- 4. PDF GENERATION (FIXED) ---
+# --- 6. PDF GENERATION (STABLE VERSION) ---
 def create_pdf(sig_data):
     pdf = FPDF()
     pdf.add_page()
+    
+    # Logo
+    if os.path.exists("logo.png"):
+        pdf.image("logo.png", x=85, y=10, w=40)
+        pdf.ln(30)
+
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(200, 10, "RSB METROLOGY APPLICATION", ln=True, align='C')
     pdf.ln(10)
+    
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, f"Company: {company_name}", ln=True)
-    pdf.cell(200, 10, f"Lab: {lab_assigned}", ln=True)
-    pdf.cell(200, 10, f"Cost: {total_cost} Rwf", ln=True)
+    pdf.cell(200, 10, f"Applicant: {applicant_name}", ln=True)
+    pdf.cell(200, 10, f"Designated Lab: {lab_assigned}", ln=True)
+    pdf.cell(200, 10, f"Total Cost: {total_cost:,} Rwf", ln=True)
+    pdf.cell(200, 10, f"Collection Date: {col_date}", ln=True)
+    pdf.ln(10)
 
-    # Process Signature only if it exists
+    # Signature Processing
     if sig_data is not None:
-        # Convert the drawing into a real image
-        img = Image.fromarray(sig_data.astype('uint8'), 'RGBA')
-        # Create a white background to prevent PDF errors
-        final_sig = Image.new("RGB", img.size, (255, 255, 255))
-        final_sig.paste(img, mask=img.split()[3]) 
-        final_sig.save("sig_output.png")
-        pdf.image("sig_output.png", w=50)
+        try:
+            # Convert canvas to Image
+            img = Image.fromarray(sig_data.astype('uint8'), 'RGBA')
+            # Create white background to avoid transparency errors in FPDF
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            bg.paste(img, mask=img.split()[3])
+            # Save to a byte buffer instead of a file for better cloud compatibility
+            img_byte_arr = io.BytesIO()
+            bg.save(img_byte_arr, format='PNG')
+            img_byte_arr.seek(0)
+            
+            # Save temp file for FPDF to read
+            bg.save("temp_sig.png")
+            pdf.cell(200, 10, "Applicant Signature:", ln=True)
+            pdf.image("temp_sig.png", w=50)
+        except Exception as sig_err:
+            st.error(f"Signature error: {sig_err}")
 
     return pdf.output(dest="S").encode("latin-1")
 
-# --- 5. ACTION BUTTON ---
-if st.button("Generate Final Slip"):
-    # Check if user actually signed
-    if canvas_result.image_data is None or np.sum(canvas_result.image_data) == 0:
-        st.error("⚠️ Please provide a signature before proceeding.")
-    elif not company_name:
-        st.error("⚠️ Please enter a Company Name.")
+# --- 7. BUTTON LOGIC ---
+st.divider()
+if st.button("Generate & Download Slip"):
+    # Check if signature exists by looking at the alpha channel (drawing pixels)
+    if canvas_result.image_data is not None:
+        # Summing pixels to see if user actually drew something
+        if np.sum(canvas_result.image_data) > 0:
+            if not company_name or not applicant_name:
+                st.warning("⚠️ Please fill in all text fields.")
+            else:
+                try:
+                    output_pdf = create_pdf(canvas_result.image_data)
+                    st.success("✅ Application generated!")
+                    st.download_button(
+                        label="📥 Download PDF Slip",
+                        data=output_pdf,
+                        file_name=f"RSB_Slip_{company_name}.pdf",
+                        mime="application/pdf"
+                    )
+                except Exception as e:
+                    st.error(f"PDF Generation Error: {e}")
+        else:
+            st.error("⚠️ Please sign the signature pad before generating.")
     else:
-        try:
-            pdf_bytes = create_pdf(canvas_result.image_data)
-            st.success("✅ Application successfully processed!")
-            st.download_button("📥 Download PDF", data=pdf_bytes, file_name="RSB_Slip.pdf")
-        except Exception as e:
-            st.error(f"Error creating PDF: {e}")
+        st.error("⚠️ Signature pad not initialized.")

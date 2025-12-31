@@ -3,33 +3,43 @@ from datetime import datetime, timedelta
 from fpdf import FPDF
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
 import os
 import io
 
-# 1. Page Configuration & Theme
+# --- 1. PAGE CONFIG & FORCED LIGHT THEME ---
 st.set_page_config(page_title="Ubuziranenge AI", page_icon="⚖️", layout="centered")
 
+# CSS to fix Dark Mode issues on mobile and style the UI
 st.markdown("""
     <style>
-    .main { background-color: #FFFFFF; }
-    h1, h2, h3 { color: #1E3A8A; font-family: 'Arial'; }
+    .stApp { background-color: white !important; }
+    h1, h2, h3, p, span, label, .stMarkdown { color: #1E3A8A !important; }
+    .stButton>button { background-color: #1E3A8A !important; color: white !important; width: 100%; border-radius: 8px; }
+    .chat-bubble { background-color: #F0F4F8; padding: 15px; border-radius: 15px; border-left: 5px solid #1E3A8A; margin: 10px 0; }
+    [data-testid="stMetricValue"] { color: #1E3A8A !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. UI HEADER
+# --- 2. HEADER & LOGO ---
 if os.path.exists("logo.png"):
-    st.image("logo.png", width=180)
-
+    st.image("logo.png", width=150)
 st.markdown("<h1 style='text-align: center;'>Ubuziranenge AI</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 18px;'>Metrology service application assistant</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 20px;'>Metrology service application assistant</p>", unsafe_allow_html=True)
 st.divider()
 
-# 3. CUSTOMER INFORMATION (Added Email Field)
+# --- 3. KNOWLEDGE BASE & LOGIC ---
+lab_mapping = {
+    "Legal Metrology Unit": ["Market Scale", "Fuel Pump", "Water Meter", "Electricity Meter", "Taxi Meter", "Weighbridge"],
+    "Mass & Balance Lab": ["Analytical Balance", "Industrial Scale", "Standard Weights"],
+    "Temperature & Humidity Lab": ["Thermometer", "Oven/Fridge", "Autoclave/Incubator"],
+    "Volume & Flow Lab": ["Micropipette", "Laboratory Glassware", "Prover Tank"],
+    "Pressure": ["Pressure Gauge"],
+    "Force Lab":["compression and tension machine","cbr","marshall","Triaxial testing machine","torque wrench"],
+    "Dimension Lab": ["Vernier Caliper", "Micrometer", "Ruler/Tape Measure"]
+}
+all_instruments = sorted([item for sublist in lab_mapping.values() for item in sublist])
+
+# --- 4. CUSTOMER INFORMATION ---
 st.subheader("🏢 Customer Information")
 col_c1, col_c2 = st.columns(2)
 with col_c1:
@@ -41,275 +51,114 @@ with col_c2:
     contact_number = st.text_input("Contact Number")
     customer_email = st.text_input("Email Address")
 
-st.divider()
+# --- 5. SERVICE SELECTION ---
+st.subheader("⚖️ Service Selection")
+col_s1, col_s2 = st.columns(2)
+with col_s1:
+    selected_item = st.selectbox("Select Instrument:", all_instruments)
+    usage = st.radio("Usage Purpose:", ["Trade/Commercial", "Industrial/Scientific"])
+with col_s2:
+    quantity = st.number_input("Number of Units:", min_value=1, value=1)
 
-# 4. INSTRUMENT & LOGIC (Condensed for brevity)
-lab_mapping = {
-    "Legal Metrology Unit": ["Market Scale", "Fuel Pump", "Water Meter", "Electricity Meter", "Taxi Meter", "Weighbridge"],
-    "Mass & Balance Lab": ["Analytical Balance", "Industrial Scale", "Standard Weights"],
-    "Temperature & Humidity Lab": ["Thermometer", "Oven/Fridge", "Autoclave/Incubator"],
-    "Volume & Flow Lab": ["Micropipette", "Laboratory Glassware", "Prover Tank"],
-    "Pressure": ["Pressure Gauge"],
-    "Force Lab":["compression and tension machine","torque wrench","cbr","marshall"],
-    "Dimension Lab": ["dial gauge","Vernier Caliper", "Micrometer", "Ruler/Tape Measure"]
-}
-all_instruments = sorted([item for sublist in lab_mapping.values() for item in sublist])
-
-selected_item = st.selectbox("Select Instrument:", all_instruments)
-usage = st.radio("Purpose:", ["Trade/Commercial", "Industrial/Scientific"])
-quantity = st.number_input("Number of Instruments:", min_value=1, value=1)
-
+# Logic for Assignment and Price
 is_trade = "Trade" in usage
 if is_trade:
     service_type, lab_assigned, unit_price = "Verification", "Legal Metrology Unit", 500
     total_cost = quantity * unit_price
 else:
     service_type, unit_price = "Calibration", 10000
-    lab_assigned = next((lab for lab, items in lab_mapping.items() if selected_item in items), "General Lab")
+    lab_assigned = next((lab for lab, items in lab_mapping.items() if selected_item in items), "General Metrology Lab")
     total_cost = 100000 if quantity >= 10 else quantity * unit_price
 
-collection_date = (datetime.now() + timedelta(days=14)).strftime('%d %B, %Y')
+receive_date = datetime.now()
+collection_date = (receive_date + timedelta(days=14)).strftime('%d %B, %Y')
 
-# 5. DIGITAL SIGNATURE
-st.subheader("✍️ Digital Signature")
+# --- 6. CHATBOT ASSISTANT ---
+st.divider()
+st.subheader("🤖 Ubuziranenge Chatbot")
+user_query = st.text_input("Ask me about RSB scope or this application:", placeholder="e.g., How much do I pay?")
+
+if user_query:
+    q = user_query.lower()
+    if any(word in q for word in ["cost", "price", "pay", "amount"]):
+        ans = f"Your total estimated cost for {quantity} unit(s) is **{total_cost:,} Rwf**."
+    elif any(word in q for word in ["date", "collection", "pickup", "ready"]):
+        ans = f"Your instruments will be ready for collection on **{collection_date}**."
+    elif any(word in q for word in ["lab", "where", "room"]):
+        ans = f"Your {selected_item} is designated to the **{lab_assigned}**."
+    elif any(word in q for word in ["scope", "calibrate", "do you"]):
+        ans = "RSB Metrology covers Mass, Volume, Flow, Temperature, Pressure, Force, and Legal Metrology. For medical or unique tools, please call 3250."
+    else:
+        ans = "For specific technical inquiries outside of this scope, please contact the **RSB Hotline at 3250**."
+    st.markdown(f"<div class='chat-bubble'>{ans}</div>", unsafe_allow_html=True)
+
+# --- 7. DIGITAL SIGNATURE ---
+st.subheader("✍️ Applicant Signature")
+st.write("Please sign below (Touchscreen or Mouse):")
 canvas_result = st_canvas(
-    stroke_width=2, stroke_color="#000000", background_color="#EEEEEE",
-    height=150, drawing_mode="freedraw", key="canvas",
+    stroke_width=2, stroke_color="#000000", background_color="#F8FAFC",
+    height=150, update_freq=True, key="canvas",
 )
 
-# 6. EMAIL & PDF LOGIC
-def send_email(pdf_content, recipient_email):
-    # This pulls your hidden credentials from Streamlit Secrets
-    sender_email = st.secrets["email_auth"]["sender_email"]
-    password = st.secrets["email_auth"]["app_password"]
-    
-    msg = MIMEMultipart()
-    msg['From'] = f"Ubuziranenge AI <{sender_email}>"
-    msg['To'] = recipient_email
-    msg['Subject'] = f"Metrology Application - {company_name}"
-    
-    body = f"Hello {applicant_name},\n\nAttached is your service application for {selected_item}. Please present this at RSB."
-    msg.attach(MIMEText(body, 'plain'))
-    
-    part = MIMEBase('application', 'octet-stream')
-    part.set_payload(pdf_content)
-    encoders.encode_base64(part)
-    part.add_header('Content-Disposition', "attachment; filename=RSB_Quotation.pdf")
-    msg.attach(part)
-    
-    try:
-        # Connect to Gmail's server
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(sender_email, password)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception as e:
-        st.error(f"Email could not be sent: {e}")
-        return False
-    
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient_email
-    msg['Subject'] = f"Metrology Quotation - {company_name}"
-    
-    body = f"Hello {applicant_name},\n\nPlease find attached your metrology service quotation generated by Ubuziranenge AI."
-    msg.attach(MIMEText(body, 'plain'))
-    
-    part = MIMEBase('application', 'octet-stream')
-    part.set_payload(pdf_content)
-    encoders.encode_base64(part)
-    part.add_header('Content-Disposition', f"attachment; filename=RSB_Quotation.pdf")
-    msg.attach(part)
-    
-    try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(sender_email, password)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception as e:
-        st.error(f"Email failed: {e}")
-        return False
-def create_pdf(sig_image_data):
+# --- 8. PDF GENERATION FUNCTION ---
+def generate_pdf(sig_data):
     pdf = FPDF()
     pdf.add_page()
     
-    # 1. ADD RSB LOGO (Top Center)
+    # Logo
     if os.path.exists("logo.png"):
-        # Parameters: (file, x, y, width)
         pdf.image("logo.png", x=85, y=10, w=40)
-        pdf.ln(35) # Move cursor down after the logo
-    else:
-        pdf.ln(10)
-        
-    # 2. HEADER
+        pdf.ln(35)
+    
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(200, 10, "RWANDA STANDARDS BOARD", ln=True, align='C')
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(200, 8, "METROLOGY SERVICE APPLICATION SLIP", ln=True, align='C')
     pdf.ln(10)
-    
-    # 3. CUSTOMER INFORMATION
-    pdf.set_fill_color(240, 240, 240) # Light grey background for sections
-    pdf.set_font("Arial", 'B', 11)
-    pdf.cell(0, 10, "  CUSTOMER DETAILS", ln=True, fill=True)
+
+    # Info Table
+    pdf.set_fill_color(230, 240, 255)
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(0, 10, " CUSTOMER & SERVICE INFORMATION", ln=True, fill=True)
     pdf.set_font("Arial", size=10)
-    pdf.cell(100, 8, f"Company Name: {company_name}", ln=True)
-    pdf.cell(100, 8, f"TIN Number: {tin_number}", ln=True)
+    pdf.cell(100, 8, f"Company: {company_name}", ln=True)
     pdf.cell(100, 8, f"Applicant: {applicant_name} ({contact_number})", ln=True)
-    pdf.cell(100, 8, f"Email: {customer_email}", ln=True)
-    pdf.ln(5)
+    pdf.cell(100, 8, f"Instrument: {selected_item} ({quantity} units)", ln=True)
     
-    # 4. DESIGNATED LABORATORY & SERVICE INFO
-    pdf.set_font("Arial", 'B', 11)
-    pdf.cell(0, 10, "  SERVICE ASSIGNMENT", ln=True, fill=True)
-    pdf.set_font("Arial", size=10)
-    
-    # Highlighting the Lab
-    pdf.set_text_color(30, 58, 138) # Dark Blue
+    pdf.set_text_color(30, 58, 138)
     pdf.set_font("Arial", 'B', 10)
     pdf.cell(100, 8, f"DESIGNATED LAB: {lab_assigned.upper()}", ln=True)
-    pdf.set_text_color(0, 0, 0) # Reset to black
+    pdf.set_text_color(0, 0, 0)
     
-    pdf.set_font("Arial", size=10)
-    pdf.cell(100, 8, f"Instrument: {selected_item}", ln=True)
-    pdf.cell(100, 8, f"Service Type: {service_type}", ln=True)
-    pdf.cell(100, 8, f"Quantity: {quantity}", ln=True)
-    pdf.cell(100, 8, f"Total Estimated Cost: {total_cost:,} Rwf", ln=True)
+    pdf.cell(100, 8, f"Total Cost: {total_cost:,} Rwf", ln=True)
     pdf.cell(100, 8, f"Collection Date: {collection_date}", ln=True)
-    pdf.ln(10)
-    
-    # 5. DIGITAL SIGNATURE
-    if sig_image_data is not None:
-        # Convert the canvas array to a temporary image file
-        img = Image.fromarray(sig_image_data.astype('uint8'), 'RGBA')
-        # Create a white background so the signature is visible on PDF
-        white_bg = Image.new("RGBA", img.size, "WHITE")
-        white_bg.paste(img, (0, 0), img)
-        white_bg.convert('RGB').save("temp_sig.png")
-        
-        pdf.set_font("Arial", 'B', 10)
-        pdf.cell(100, 8, "Applicant Digital Signature:", ln=True)
-        pdf.image("temp_sig.png", w=50) # Signature width
+
+    # Signature
+    if sig_data is not None:
+        img = Image.fromarray(sig_data.astype('uint8'), 'RGBA')
+        bg = Image.new("RGBA", img.size, "WHITE")
+        bg.paste(img, (0, 0), img)
+        bg.convert('RGB').save("sig.png")
         pdf.ln(5)
+        pdf.cell(100, 8, "Applicant Signature:", ln=True)
+        pdf.image("sig.png", w=40)
 
-    # 6. FOOTER NOTE
-    pdf.set_y(-40) # Position at the bottom
+    pdf.set_y(-30)
     pdf.set_font("Arial", 'I', 8)
-    pdf.multi_cell(0, 5, "NOTE: This slip is generated by Ubuziranenge AI. Please present your instrument(s) and this slip at the RSB Metrology Reception desk for physical verification and final invoicing.", align='C')
-    
-    return pdf.output(dest="S").encode("latin-1") 
-
-
-
-    
-    # Adding the Signature Image to PDF
-    if sig_image_data is not None:
-        img = Image.fromarray(sig_image_data.astype('uint8'), 'RGBA')
-        img.save("temp_sig.png")
-        pdf.ln(10)
-        pdf.cell(100, 7, "Applicant Signature:", ln=True)
-        pdf.image("temp_sig.png", x=10, w=40)
-    
-    pdf.ln(10)
-    pdf.set_font("Arial", 'I', 8)
-    pdf.multi_cell(0, 5, "Note: This is an automated quotation. Final billing is done at RSB reception.")
+    pdf.multi_cell(0, 5, "Note: This is an automated assistant slip. Final verification and invoicing will be done at RSB reception.")
     return pdf.output(dest="S").encode("latin-1")
 
-# 7. EXECUTION
-if st.button("Confirm & Send Email"):
-    if not customer_email:
-        st.error("Please provide an email address.")
-    else:
-        pdf_bytes = create_pdf(canvas_result.image_data)
-        if send_email(pdf_bytes, customer_email):
-            st.success(f"Quotation sent to {customer_email}!")
-        
-        st.download_button("Download PDF Manually", data=pdf_bytes, file_name="Quotation.pdf")
-
-import streamlit as st
-from datetime import datetime, timedelta
-from fpdf import FPDF
-from streamlit_drawable_canvas import st_canvas
-from PIL import Image
-import os
-
-# --- PAGE CONFIG & STYLING (FORCED LIGHT MODE) ---
-st.set_page_config(page_title="Ubuziranenge AI", page_icon="⚖️", layout="centered")
-
-st.markdown("""
-    <style>
-    .stApp { background-color: white !important; }
-    h1, h2, h3, p, span, label { color: #1E3A8A !important; }
-    .chat-bubble { background-color: #F0F2F6; padding: 15px; border-radius: 10px; border-left: 5px solid #1E3A8A; margin-bottom: 10px; }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- HEADER ---
-if os.path.exists("logo.png"):
-    st.image("logo.png", width=160)
-st.markdown("<h1 style='text-align: center;'>Ubuziranenge AI</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center;'>Metrology service application assistant</p>", unsafe_allow_html=True)
+# --- 9. FINAL ACTIONS ---
 st.divider()
-
-# --- INPUT SECTION (Simplified for logic flow) ---
-st.subheader("🏢 Customer & Instrument Details")
-col_c1, col_c2 = st.columns(2)
-with col_c1:
-    company_name = st.text_input("Company Name", key="comp")
-    selected_item = st.selectbox("Instrument:", ["Digital Scale", "Thermometer", "Water Meter", "Fuel Pump", "Pressure Gauge", "Micropipette"])
-with col_c2:
-    customer_email = st.text_input("Email Address")
-    quantity = st.number_input("Quantity:", min_value=1, value=1)
-    usage = st.radio("Use:", ["Trade", "Industrial"])
-
-# Calculations
-is_trade = usage == "Trade"
-total_cost = (quantity * 500) if is_trade else (100000 if quantity >= 10 else quantity * 10000)
-col_date = (datetime.now() + timedelta(days=14)).strftime('%d %B, %Y')
-
-# --- THE CHATBOT SECTION ---
-st.divider()
-st.subheader("🤖 Ubuziranenge Chat Assistant")
-st.info("Ask me about RSB metrology scope or your current application.")
-
-user_query = st.text_input("Type your question here (e.g., 'What is my total cost?' or 'Do you calibrate scales?')")
-
-if user_query:
-    query = user_query.lower()
-    response = ""
-
-    # 1. Logic for Current Application Info
-    if "cost" in query or "price" in query or "pay" in query:
-        response = f"Based on your input, your total estimated cost is **{total_cost:,} Rwf** for {quantity} unit(s)."
-    elif "date" in query or "when" in query or "pickup" in query or "collection" in query:
-        response = f"Your scheduled collection date is **{col_date}** (14 days from today)."
-    
-    # 2. Logic for RSB Scope
-    elif "scale" in query or "weight" in query or "balance" in query:
-        response = "Yes, RSB Metrology provides verification and calibration for all types of weighing instruments (Mass & Balance Lab)."
-    elif "thermometer" in query or "temperature" in query or "oven" in query:
-        response = "Yes, the Temperature & Humidity Laboratory handles thermometers, incubators, and cold chain equipment."
-    elif "water" in query or "meter" in query or "volume" in query:
-        response = "Yes, RSB services water meters, flow meters, and laboratory glassware through the Volume & Flow Lab."
-    
-    # 3. Out of Scope / Default
+if st.button("Generate Final Application Slip"):
+    if not company_name or not applicant_name:
+        st.error("❌ Please fill in the Customer Information.")
     else:
-        response = "I'm sorry, I don't have specific details on that instrument. For more information on our full scope of services, please contact the **RSB Hotline at 3250** or visit our headquarters in Kicukiro."
-
-    # Display the "Chat Bubble"
-    st.markdown(f"<div class='chat-bubble'><b>Ubuziranenge AI:</b><br>{response}</div>", unsafe_allow_html=True)
-
-# --- SIGNATURE & PDF (Remaining code from previous steps) ---
-st.divider()
-st.write("### ✍️ Finalize Application")
-canvas_result = st_canvas(stroke_width=2, stroke_color="#000000", background_color="#EEEEEE", height=100, key="chat_sig")
-
-if st.button("Generate & Download Slip"):
-    if not company_name:
-        st.error("Please enter Company Name first.")
-    else:
-        st.success("Slip ready for download below.")
+        st.success("✅ Application Processed!")
+        pdf_bytes = generate_pdf(canvas_result.image_data)
+        st.download_button(
+            label="📥 Download Official Slip (PDF)",
+            data=pdf_bytes,
+            file_name=f"RSB_Application_{company_name}.pdf",
+            mime="application/pdf"
+        )

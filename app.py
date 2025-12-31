@@ -169,3 +169,87 @@ if st.button("Confirm & Send Email"):
             st.success(f"Quotation sent to {customer_email}!")
         
         st.download_button("Download PDF Manually", data=pdf_bytes, file_name="Quotation.pdf")
+
+import streamlit as st
+from datetime import datetime, timedelta
+from fpdf import FPDF
+from streamlit_drawable_canvas import st_canvas
+from PIL import Image
+import os
+
+# --- PAGE CONFIG & STYLING (FORCED LIGHT MODE) ---
+st.set_page_config(page_title="Ubuziranenge AI", page_icon="⚖️", layout="centered")
+
+st.markdown("""
+    <style>
+    .stApp { background-color: white !important; }
+    h1, h2, h3, p, span, label { color: #1E3A8A !important; }
+    .chat-bubble { background-color: #F0F2F6; padding: 15px; border-radius: 10px; border-left: 5px solid #1E3A8A; margin-bottom: 10px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- HEADER ---
+if os.path.exists("logo.png"):
+    st.image("logo.png", width=160)
+st.markdown("<h1 style='text-align: center;'>Ubuziranenge AI</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>Metrology service application assistant</p>", unsafe_allow_html=True)
+st.divider()
+
+# --- INPUT SECTION (Simplified for logic flow) ---
+st.subheader("🏢 Customer & Instrument Details")
+col_c1, col_c2 = st.columns(2)
+with col_c1:
+    company_name = st.text_input("Company Name", key="comp")
+    selected_item = st.selectbox("Instrument:", ["Digital Scale", "Thermometer", "Water Meter", "Fuel Pump", "Pressure Gauge", "Micropipette"])
+with col_c2:
+    customer_email = st.text_input("Email Address")
+    quantity = st.number_input("Quantity:", min_value=1, value=1)
+    usage = st.radio("Use:", ["Trade", "Industrial"])
+
+# Calculations
+is_trade = usage == "Trade"
+total_cost = (quantity * 500) if is_trade else (100000 if quantity >= 10 else quantity * 10000)
+col_date = (datetime.now() + timedelta(days=14)).strftime('%d %B, %Y')
+
+# --- THE CHATBOT SECTION ---
+st.divider()
+st.subheader("🤖 Ubuziranenge Chat Assistant")
+st.info("Ask me about RSB metrology scope or your current application.")
+
+user_query = st.text_input("Type your question here (e.g., 'What is my total cost?' or 'Do you calibrate scales?')")
+
+if user_query:
+    query = user_query.lower()
+    response = ""
+
+    # 1. Logic for Current Application Info
+    if "cost" in query or "price" in query or "pay" in query:
+        response = f"Based on your input, your total estimated cost is **{total_cost:,} Rwf** for {quantity} unit(s)."
+    elif "date" in query or "when" in query or "pickup" in query or "collection" in query:
+        response = f"Your scheduled collection date is **{col_date}** (14 days from today)."
+    
+    # 2. Logic for RSB Scope
+    elif "scale" in query or "weight" in query or "balance" in query:
+        response = "Yes, RSB Metrology provides verification and calibration for all types of weighing instruments (Mass & Balance Lab)."
+    elif "thermometer" in query or "temperature" in query or "oven" in query:
+        response = "Yes, the Temperature & Humidity Laboratory handles thermometers, incubators, and cold chain equipment."
+    elif "water" in query or "meter" in query or "volume" in query:
+        response = "Yes, RSB services water meters, flow meters, and laboratory glassware through the Volume & Flow Lab."
+    
+    # 3. Out of Scope / Default
+    else:
+        response = "I'm sorry, I don't have specific details on that instrument. For more information on our full scope of services, please contact the **RSB Hotline at 3250** or visit our headquarters in Kicukiro."
+
+    # Display the "Chat Bubble"
+    st.markdown(f"<div class='chat-bubble'><b>Ubuziranenge AI:</b><br>{response}</div>", unsafe_allow_html=True)
+
+# --- SIGNATURE & PDF (Remaining code from previous steps) ---
+st.divider()
+st.write("### ✍️ Finalize Application")
+canvas_result = st_canvas(stroke_width=2, stroke_color="#000000", background_color="#EEEEEE", height=100, key="chat_sig")
+
+if st.button("Generate & Download Slip"):
+    if not company_name:
+        st.error("Please enter Company Name first.")
+    else:
+        st.success("Slip ready for download below.")

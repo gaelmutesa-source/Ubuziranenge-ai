@@ -78,9 +78,35 @@ canvas_result = st_canvas(
 
 # 6. EMAIL & PDF LOGIC
 def send_email(pdf_content, recipient_email):
-    # NOTE: You must set these in Streamlit "Secrets" for security
-    sender_email = "gaelmutesa@gmail.com" 
-    password = "sqzh fsom hokk ghhj" 
+    # This pulls your hidden credentials from Streamlit Secrets
+    sender_email = st.secrets["email_auth"]["sender_email"]
+    password = st.secrets["email_auth"]["app_password"]
+    
+    msg = MIMEMultipart()
+    msg['From'] = f"Ubuziranenge AI <{sender_email}>"
+    msg['To'] = recipient_email
+    msg['Subject'] = f"Metrology Application - {company_name}"
+    
+    body = f"Hello {applicant_name},\n\nAttached is your service application for {selected_item}. Please present this at RSB."
+    msg.attach(MIMEText(body, 'plain'))
+    
+    part = MIMEBase('application', 'octet-stream')
+    part.set_payload(pdf_content)
+    encoders.encode_base64(part)
+    part.add_header('Content-Disposition', "attachment; filename=RSB_Quotation.pdf")
+    msg.attach(part)
+    
+    try:
+        # Connect to Gmail's server
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        st.error(f"Email could not be sent: {e}")
+        return False
     
     msg = MIMEMultipart()
     msg['From'] = sender_email

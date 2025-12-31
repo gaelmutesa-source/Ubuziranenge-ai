@@ -80,7 +80,7 @@ canvas_result = st_canvas(
 def send_email(pdf_content, recipient_email):
     # NOTE: You must set these in Streamlit "Secrets" for security
     sender_email = "YOUR_GMAIL@gmail.com" 
-    password = "YOUR_APP_PASSWORD" 
+    password = "sqzh fsom hokk ghhj" 
     
     msg = MIMEMultipart()
     msg['From'] = sender_email

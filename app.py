@@ -134,7 +134,7 @@ def send_email(pdf_content, recipient_email):
         st.error(f"Email failed: {e}")
         return False
 
-def def create_pdf(sig_image_data):
+    def create_pdf(sig_image_data):
     pdf = FPDF()
     pdf.add_page()
     
@@ -205,18 +205,7 @@ def def create_pdf(sig_image_data):
     return pdf.output(dest="S").encode("latin-1") 
 
 
-create_pdf(sig_image_data):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, "RWANDA STANDARDS BOARD", ln=True, align='C')
-    pdf.ln(10)
-    pdf.set_font("Arial", size=10)
-    pdf.cell(100, 7, f"Company: {company_name}", ln=True)
-    pdf.cell(100, 7, f"TIN: {tin_number}", ln=True)
-    pdf.cell(100, 7, f"Instrument: {selected_item} (Qty: {quantity})", ln=True)
-    pdf.cell(100, 7, f"Total Cost: {total_cost:,} Rwf", ln=True)
-    pdf.cell(100, 7, f"Collection Date: {collection_date}", ln=True)
+
     
     # Adding the Signature Image to PDF
     if sig_image_data is not None:
